@@ -4,14 +4,15 @@ NAME
 
 DESCRIPTION
     This module allows customers to be created, updated, deleted from database
-    and lets them buy drugs from pharmacy. When imported it initializes database.
+    and lets them buy drugs from pharmacy. Before any function can be used it must be
+    intialize with "init_database" function.
 
     This script requires pandas and openpyxl to be installed within the Python
     environment you are running this script in.
 
 FUNCTIONS
     This module contains the following functions:
-    * init_customer_database()
+    * init_database()
 
     * add_customer(name, email, phone, street, city, country) - returns boolean if adding customer was success or not
 
@@ -40,18 +41,11 @@ EXAMPLES
 import csv, random, os
 import pandas as pd
 from datetime import date
+from const import *
 
-DATABASE_DIR_PATH = os.path.join('database')
-CUSTOMER_FILE_PATH = os.path.join(DATABASE_DIR_PATH, 'customer.csv')
-ADDRESS_FILE_PATH = os.path.join(DATABASE_DIR_PATH, 'address.csv')
-DRUG_FILE_PATH = os.path.join(DATABASE_DIR_PATH, 'drugs.xlsx')
-
-CUSTOMER_FIELDNAMES = ['ID', 'NAME', 'E-MAIL', 'PHONE', 'CREATED', 'UPDATED']
-ADDRESS_FIELDNAMES = ['ID', 'STREET', 'CITY', 'COUNTRY']
-
-def init_customer_database() -> None:
+def init_database() -> None:
     """
-    Creates database directory, customer.csv and address.csv files if they don't exist.
+    Creates database directory, customer.csv, address.csv and drug.xlsx files if they don't exist.
 
     Returns:
         None
@@ -68,6 +62,10 @@ def init_customer_database() -> None:
         with open(ADDRESS_FILE_PATH, mode='w') as csv_file:
             writer = csv.DictWriter(csv_file, ADDRESS_FIELDNAMES, lineterminator='\r')
             writer.writeheader()
+
+    if not os.path.isfile(DRUG_FILE_PATH):
+        df = pd.DataFrame({fieldname: [] for fieldname in DRUGS_FIELDNAMES})
+        df.to_excel(DRUG_FILE_PATH, index=False)
 
 def add_customer(name: str, email: str, phone: str, street: str, city: str, country: str) -> bool:
     """
@@ -345,5 +343,3 @@ def customer_buy_drug(
         customer_text_file.write(f'drug: {drug_name}, amount: {amount}, prescription: {prescription}\n')
 
     return True
-
-init_customer_database()
