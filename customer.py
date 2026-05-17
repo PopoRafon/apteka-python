@@ -13,21 +13,27 @@ FUNCTIONS
     This module contains the following functions:
     * init_customer_database()
 
-    * add_customer(name, email, phone, street, city, country)
+    * add_customer(name, email, phone, street, city, country) - returns boolean if adding customer was success or not
 
-    * remove_customer(id, name)
+    * remove_customer(id, name) - returns boolean if removing customer was success or not
 
-    * customer_buy_drug(customer_id, amount, drug_id, drug_name, prescription)
+    * customer_buy_drug(customer_id, amount, drug_id, drug_name, prescription) - returns boolean if drug purchase operation was success or not
 
     * get_customer(id) - returns dictionary of customer data if customer is found else returns None
 
-    * update_customer(id, name, email, phone, street, city, country)
+    * update_customer(id, name, email, phone, street, city, country) - returns boolean if updating customer was success or not
+
+    * multi_purchase(func)
 
 EXAMPLES
     add_customer(name="Kamil Kowal", email="Youdeen87@gmail.com", phone="606787997", street="Braci Jeziorowskich", city="Plock", country="Poland")
+
     remove_customer(name="Kamil Kowal")
-    customer_buy_drug(customer_id=5, amount=3, drug_id=2)
+
+    customer_buy_drug(5, [{'amount': 2, 'drug_id': 2}, {'amount': 5, 'drug_name': 'amoTax', 'prescription': '123'}])
+
     get_customer(id=4)
+
     update_customer(id=7, email='test@gmail.com', city='Bialystok', country='Poland')
 """
 
@@ -63,7 +69,7 @@ def init_customer_database() -> None:
             writer = csv.DictWriter(csv_file, ADDRESS_FIELDNAMES, lineterminator='\r')
             writer.writeheader()
 
-def add_customer(name: str, email: str, phone: str, street: str, city: str, country: str) -> None:
+def add_customer(name: str, email: str, phone: str, street: str, city: str, country: str) -> bool:
     """
     Creates random id for new customer. Adds his data to customer.csv and address.csv files. Creates customer e-book ".txt" file with his id.
 
@@ -76,7 +82,7 @@ def add_customer(name: str, email: str, phone: str, street: str, city: str, coun
         country (str): new customer country
 
     Returns:
-        None
+        success (bool): True if customer was successfully added otherwise False
     """
     ids_range = [1000, 9999]
     id = random.randint(ids_range[0], ids_range[1])
@@ -92,7 +98,7 @@ def add_customer(name: str, email: str, phone: str, street: str, city: str, coun
 
         if len(file_ids) >= (ids_range[1] - ids_range[0]):
             print("Maximum number of ids exceeded.")
-            return
+            return False
 
         while id in file_ids:
             id = random.randint(ids_range[0], ids_range[1])
@@ -107,7 +113,9 @@ def add_customer(name: str, email: str, phone: str, street: str, city: str, coun
 
     open(os.path.join(DATABASE_DIR_PATH, f'{id}.txt'), mode='w').close()
 
-def remove_customer(id: int | None = None, name: str | None = None) -> None:
+    return True
+
+def remove_customer(id: int | None = None, name: str | None = None) -> bool:
     """
     Removes customer data from customer.csv and address.csv files and removes his e-book ".txt" file.
 
@@ -116,42 +124,48 @@ def remove_customer(id: int | None = None, name: str | None = None) -> None:
         name (str | None): name of customer to be removed
 
     Returns:
-        None
+        success (bool): True if customer was successfully removed otherwise False
     """
-    if name and not id:
-        with open(CUSTOMER_FILE_PATH, mode='r') as csv_file:
-            csv_reader = csv.DictReader(csv_file)
+    is_customer_found = False
 
-            for row in csv_reader:
-                if row['NAME'] == name:
-                    id = int(row['ID'])
-                    break
+    with open(CUSTOMER_FILE_PATH, mode='r') as csv_file:
+        csv_reader = csv.DictReader(csv_file)
 
-    if id:
-        with open(CUSTOMER_FILE_PATH, mode='r') as csv_file:
-            csv_reader = csv.DictReader(csv_file)
-            rows = [row for row in csv_reader if int(row['ID']) != id]
+        for row in csv_reader:
+            if int(row['ID']) == id or row['NAME'] == name:
+                id = int(row['ID'])
+                is_customer_found = True
+                break
 
-        with open(CUSTOMER_FILE_PATH, mode='w') as csv_file:
-            csv_writer = csv.DictWriter(csv_file, fieldnames=CUSTOMER_FIELDNAMES, lineterminator='\r')
-            csv_writer.writeheader()
-            csv_writer.writerows(rows)
 
-        with open(ADDRESS_FILE_PATH, mode='r') as csv_file:
-            csv_reader = csv.DictReader(csv_file)
-            rows = [row for row in csv_reader if int(row['ID']) != id]
-
-        with open(ADDRESS_FILE_PATH, mode='w') as csv_file:
-            csv_writer = csv.DictWriter(csv_file, fieldnames=ADDRESS_FIELDNAMES, lineterminator='\r')
-            csv_writer.writeheader()
-            csv_writer.writerows(rows)
-
-        customer_database_file_path = os.path.join(DATABASE_DIR_PATH, f'{id}.txt')
-
-        if os.path.isfile(customer_database_file_path):
-            os.remove(customer_database_file_path)
-    else:
+    if not is_customer_found:
         print('Customer not found.')
+        return False
+
+    with open(CUSTOMER_FILE_PATH, mode='r') as csv_file:
+        csv_reader = csv.DictReader(csv_file)
+        rows = [row for row in csv_reader if int(row['ID']) != id]
+
+    with open(CUSTOMER_FILE_PATH, mode='w') as csv_file:
+        csv_writer = csv.DictWriter(csv_file, fieldnames=CUSTOMER_FIELDNAMES, lineterminator='\r')
+        csv_writer.writeheader()
+        csv_writer.writerows(rows)
+
+    with open(ADDRESS_FILE_PATH, mode='r') as csv_file:
+        csv_reader = csv.DictReader(csv_file)
+        rows = [row for row in csv_reader if int(row['ID']) != id]
+
+    with open(ADDRESS_FILE_PATH, mode='w') as csv_file:
+        csv_writer = csv.DictWriter(csv_file, fieldnames=ADDRESS_FIELDNAMES, lineterminator='\r')
+        csv_writer.writeheader()
+        csv_writer.writerows(rows)
+
+    customer_database_file_path = os.path.join(DATABASE_DIR_PATH, f'{id}.txt')
+
+    if os.path.isfile(customer_database_file_path):
+        os.remove(customer_database_file_path)
+
+    return True
 
 def update_customer(
         id: int,
@@ -161,7 +175,7 @@ def update_customer(
         street: str | None = None,
         city: str | None = None ,
         country: str | None = None
-    ) -> None:
+    ) -> bool:
     """
     Updates customer data to customer.csv and address.csv files based on given id.
 
@@ -175,9 +189,10 @@ def update_customer(
         country (str | None): customer new country
 
     Returns:
-        None
+        success (bool): True if customer was successfully updated otherwise False
     """
     updated = date.today()
+    is_customer_found = False
 
     with open(CUSTOMER_FILE_PATH, mode='r') as csv_file:
         csv_reader = csv.DictReader(csv_file)
@@ -185,12 +200,17 @@ def update_customer(
 
         for row in csv_reader:
             if int(row['ID']) == id:
-                row['NAME'] = row['NAME'] if name == None else name
-                row['E-MAIL'] = row['E-MAIL'] if email == None else email
-                row['PHONE'] = row['PHONE'] if phone == None else phone
+                row['NAME'] = row['NAME'] if name is None else name
+                row['E-MAIL'] = row['E-MAIL'] if email is None else email
+                row['PHONE'] = row['PHONE'] if phone is None else phone
                 row['UPDATED'] = updated
+                is_customer_found = True
 
             rows.append(row)
+
+    if not is_customer_found:
+        print('Customer not found.')
+        return False
 
     with open(CUSTOMER_FILE_PATH, mode='w') as csv_file:
         csv_writer = csv.DictWriter(csv_file, CUSTOMER_FIELDNAMES, lineterminator='\r')
@@ -203,9 +223,9 @@ def update_customer(
 
         for row in csv_reader:
             if int(row['ID']) == id:
-                row['STREET'] = row['STREET'] if street == None else street
-                row['CITY'] = row['CITY'] if city == None else city
-                row['COUNTRY'] = row['COUNTRY'] if country == None else country
+                row['STREET'] = row['STREET'] if street is None else street
+                row['CITY'] = row['CITY'] if city is None else city
+                row['COUNTRY'] = row['COUNTRY'] if country is None else country
 
             rows.append(row)
 
@@ -213,6 +233,8 @@ def update_customer(
         csv_writer = csv.DictWriter(csv_file, ADDRESS_FIELDNAMES, lineterminator='\r')
         csv_writer.writeheader()
         csv_writer.writerows(rows)
+
+    return True
 
 def get_customer(id: int) -> dict[str, str] | None:
     """
@@ -248,37 +270,72 @@ def get_customer(id: int) -> dict[str, str] | None:
 
     return customer_data
 
-def customer_buy_drug(customer_id: int, amount: int, drug_id: int = None, drug_name: str = '', prescription: str = '') -> None:
+def multi_purchase(func):
+    """
+    Decorator for customer_buy_drug function which allows customer to buy multiple drugs at once.
+    """
+    def inner(customer_id: int, purchases: list[dict[str, str | int]]) -> list[bool]:
+        success = []
+
+        for purchase in purchases:
+            success.append(func(
+                customer_id,
+                amount=purchase['amount'],
+                drug_id=purchase.get('drug_id'),
+                drug_name=purchase.get('drug_name'),
+                prescription=purchase.get('prescription'),
+            ))
+        
+        return success
+    return inner
+
+@multi_purchase
+def customer_buy_drug(
+        customer_id: int,
+        amount: int,
+        drug_id: int | None = None,
+        drug_name: str | None = None,
+        prescription: str | None = None
+    ) -> bool:
     """
     Adds drug to customer e-book ".txt" file and removes amount customer bought from "drugs.xlsx" file.
 
     Args:
         customer_id (int): id of customer who buys drug
         amount (int): amount of drugs to be bought
-        drug_id (int): id of drug to be bought
-        drug_name (str): name of drug to be bought
-        prescription (str): optional prescription number for drug
+        drug_id (int | None): id of drug to be bought
+        drug_name (str | None): name of drug to be bought
+        prescription (str | None): optional prescription number for drug
 
     Returns:
-        None
+        success (bool): True if drug was bought successfully otherwise False
     """
-    df = pd.read_excel(DRUG_FILE_PATH)
-    drug = df['ID'] == drug_id if drug_id else df['DRUG'].str.upper() == drug_name.upper()
+    if not os.path.isfile(os.path.join(DATABASE_DIR_PATH, f'{customer_id}.txt')):
+        print("Customer with that id doesn't exist.")
+        return False
 
-    if not drug.any():
+    df = pd.read_excel(DRUG_FILE_PATH)
+    drug = None
+
+    if not drug_id is None:
+        drug = df['ID'] == drug_id
+    elif not drug_name is None:
+        drug = df['DRUG'].str.upper() == drug_name.upper()
+
+    if drug is None or not drug.any():
         print('Drug not found.')
-        return
+        return False
 
     index = df[drug].index[0]
     available_drug_amount = df.at[index, 'NO_PACKAGES_AVAILABLE']
  
     if available_drug_amount < amount:
         print('Not enough drugs available.')
-        return
+        return False
 
     if df.at[index, 'ON_RECEPT'] == 'YES' and not prescription:
         print('This drug needs prescription.')
-        return
+        return False
 
     df.at[index, 'NO_PACKAGES_AVAILABLE'] = available_drug_amount - amount
     df.to_excel(DRUG_FILE_PATH, index=False)
@@ -286,5 +343,7 @@ def customer_buy_drug(customer_id: int, amount: int, drug_id: int = None, drug_n
     with open(os.path.join(DATABASE_DIR_PATH, f'{customer_id}.txt'), mode='a') as customer_text_file:
         drug_name = df.at[index, 'DRUG'].upper()
         customer_text_file.write(f'drug: {drug_name}, amount: {amount}, prescription: {prescription}\n')
+
+    return True
 
 init_customer_database()
