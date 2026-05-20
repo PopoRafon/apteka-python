@@ -3,7 +3,7 @@ import os
 DATABASE_DIR_PATH = os.path.join('database')
 CUSTOMER_FILE_PATH = os.path.join(DATABASE_DIR_PATH, 'customer.csv')
 ADDRESS_FILE_PATH = os.path.join(DATABASE_DIR_PATH, 'address.csv')
-DRUG_FILE_PATH = os.path.join(DATABASE_DIR_PATH, 'drugs.xlsx')
+DRUGS_FILE_PATH = os.path.join(DATABASE_DIR_PATH, 'drugs.xlsx')
 
 CUSTOMER_FIELDNAMES = ['ID', 'NAME', 'E-MAIL', 'PHONE', 'CREATED', 'UPDATED']
 ADDRESS_FIELDNAMES = ['ID', 'STREET', 'CITY', 'COUNTRY']

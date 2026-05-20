@@ -63,9 +63,9 @@ def init_database() -> None:
             writer = csv.DictWriter(csv_file, ADDRESS_FIELDNAMES, lineterminator='\r')
             writer.writeheader()
 
-    if not os.path.isfile(DRUG_FILE_PATH):
+    if not os.path.isfile(DRUGS_FILE_PATH):
         df = pd.DataFrame({fieldname: [] for fieldname in DRUGS_FIELDNAMES})
-        df.to_excel(DRUG_FILE_PATH, index=False)
+        df.to_excel(DRUGS_FILE_PATH, index=False)
 
 def add_customer(name: str, email: str, phone: str, street: str, city: str, country: str) -> bool:
     """
@@ -312,7 +312,7 @@ def customer_buy_drug(
         print("Customer with that id doesn't exist.")
         return False
 
-    df = pd.read_excel(DRUG_FILE_PATH)
+    df = pd.read_excel(DRUGS_FILE_PATH)
     drug = None
 
     if not drug_id is None:
@@ -336,7 +336,7 @@ def customer_buy_drug(
         return False
 
     df.at[index, 'NO_PACKAGES_AVAILABLE'] = available_drug_amount - amount
-    df.to_excel(DRUG_FILE_PATH, index=False)
+    df.to_excel(DRUGS_FILE_PATH, index=False)
 
     with open(os.path.join(DATABASE_DIR_PATH, f'{customer_id}.txt'), mode='a') as customer_text_file:
         drug_name = df.at[index, 'DRUG'].upper()
