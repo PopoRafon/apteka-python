@@ -14,15 +14,15 @@ FUNCTIONS
     This module contains the following functions:
     * init_database()
 
-    * add_customer(name, email, phone, street, city, country) - returns boolean if adding customer was success or not
+    * add_customer(name, email, phone, street, city, country) - returns None if adding customer goes successfully otherwise string with error message
 
-    * remove_customer(id, name) - returns boolean if removing customer was success or not
+    * remove_customer(id, name) - returns None if removing customer goes successfully otherwise string with error message
 
-    * customer_buy_drug(customer_id, amount, drug_id, drug_name, prescription) - returns boolean if drug purchase operation was success or not
+    * customer_buy_drug(customer_id, amount, drug_id, drug_name, prescription) - returns None if buying drug goes successfully otherwise string with error message
 
     * get_customer(id) - returns dictionary of customer data if customer is found else returns None
 
-    * update_customer(id, name, email, phone, street, city, country) - returns boolean if updating customer was success or not
+    * update_customer(id, name, email, phone, street, city, country) - returns None if updating customer goes successfully otherwise string with error message
 
     * multi_purchase(func)
 
@@ -67,7 +67,7 @@ def init_database() -> None:
         df = pd.DataFrame({fieldname: [] for fieldname in DRUGS_FIELDNAMES})
         df.to_excel(DRUGS_FILE_PATH, index=False)
 
-def add_customer(name: str, email: str, phone: str, street: str, city: str, country: str) -> bool:
+def add_customer(name: str, email: str, phone: str, street: str, city: str, country: str) -> str | None:
     """
     Creates random id for new customer. Adds his data to customer.csv and address.csv files. Creates customer e-book ".txt" file with his id.
 
@@ -80,7 +80,7 @@ def add_customer(name: str, email: str, phone: str, street: str, city: str, coun
         country (str): new customer country
 
     Returns:
-        success (bool): True if customer was successfully added otherwise False
+        message (str | None): None if operation goes successfully otherwise string with error message
     """
     ids_range = [1000, 9999]
     id = random.randint(ids_range[0], ids_range[1])
@@ -95,25 +95,24 @@ def add_customer(name: str, email: str, phone: str, street: str, city: str, coun
             file_ids.add(int(row['ID']))
 
         if len(file_ids) >= (ids_range[1] - ids_range[0]):
-            print("Maximum number of ids exceeded.")
-            return False
+            return 'Maksymalna ilość id została przekroczona.'
 
         while id in file_ids:
             id = random.randint(ids_range[0], ids_range[1])
 
-    with open(CUSTOMER_FILE_PATH, mode='a+') as csv_file:
+    with open(CUSTOMER_FILE_PATH, mode='a+', encoding='utf-8') as csv_file:
         csv_writer = csv.DictWriter(csv_file, CUSTOMER_FIELDNAMES, lineterminator='\r')
         csv_writer.writerow({'ID': id, 'NAME': name, 'E-MAIL': email, 'PHONE': phone, 'CREATED': created, 'UPDATED': updated})
 
-    with open(ADDRESS_FILE_PATH, mode='a+') as csv_file:
+    with open(ADDRESS_FILE_PATH, mode='a+', encoding='utf-8') as csv_file:
         csv_writer = csv.DictWriter(csv_file, ADDRESS_FIELDNAMES, lineterminator='\r')
         csv_writer.writerow({'ID': id, 'STREET': street, 'CITY': city, 'COUNTRY': country})
 
     open(os.path.join(DATABASE_DIR_PATH, f'{id}.txt'), mode='w').close()
 
-    return True
+    return None
 
-def remove_customer(id: int | None = None, name: str | None = None) -> bool:
+def remove_customer(id: int | None = None, name: str | None = None) -> str | None:
     """
     Removes customer data from customer.csv and address.csv files and removes his e-book ".txt" file.
 
@@ -122,7 +121,7 @@ def remove_customer(id: int | None = None, name: str | None = None) -> bool:
         name (str | None): name of customer to be removed
 
     Returns:
-        success (bool): True if customer was successfully removed otherwise False
+        message (str | None): None if operation goes successfully otherwise string with error message
     """
     is_customer_found = False
 
@@ -135,10 +134,8 @@ def remove_customer(id: int | None = None, name: str | None = None) -> bool:
                 is_customer_found = True
                 break
 
-
     if not is_customer_found:
-        print('Customer not found.')
-        return False
+        return 'Pacjent z tym id nie istnieje.'
 
     with open(CUSTOMER_FILE_PATH, mode='r') as csv_file:
         csv_reader = csv.DictReader(csv_file)
@@ -163,7 +160,7 @@ def remove_customer(id: int | None = None, name: str | None = None) -> bool:
     if os.path.isfile(customer_database_file_path):
         os.remove(customer_database_file_path)
 
-    return True
+    return None
 
 def update_customer(
         id: int,
@@ -173,7 +170,7 @@ def update_customer(
         street: str | None = None,
         city: str | None = None ,
         country: str | None = None
-    ) -> bool:
+    ) -> str | None:
     """
     Updates customer data to customer.csv and address.csv files based on given id.
 
@@ -187,7 +184,7 @@ def update_customer(
         country (str | None): customer new country
 
     Returns:
-        success (bool): True if customer was successfully updated otherwise False
+        message (str | None): None if operation goes successfully otherwise string with error message
     """
     updated = date.today()
     is_customer_found = False
@@ -207,8 +204,7 @@ def update_customer(
             rows.append(row)
 
     if not is_customer_found:
-        print('Customer not found.')
-        return False
+        return 'Pacjent z tym id nie istnieje.'
 
     with open(CUSTOMER_FILE_PATH, mode='w') as csv_file:
         csv_writer = csv.DictWriter(csv_file, CUSTOMER_FIELDNAMES, lineterminator='\r')
@@ -232,7 +228,7 @@ def update_customer(
         csv_writer.writeheader()
         csv_writer.writerows(rows)
 
-    return True
+    return None
 
 def get_customer(id: int) -> dict[str, str] | None:
     """
@@ -263,7 +259,6 @@ def get_customer(id: int) -> dict[str, str] | None:
                 break
 
     if len(customer_data.keys()) == 0:
-        print('No customer was found.')
         return None
 
     return customer_data
@@ -272,19 +267,22 @@ def multi_purchase(func):
     """
     Decorator for customer_buy_drug function which allows customer to buy multiple drugs at once.
     """
-    def inner(customer_id: int, purchases: list[dict[str, str | int]]) -> list[bool]:
-        success = []
+    def inner(customer_id: int, purchases: list[dict[str, str | int]]) -> list[str] | None:
+        messages = []
 
         for purchase in purchases:
-            success.append(func(
+            message = func(
                 customer_id,
                 amount=purchase['amount'],
                 drug_id=purchase.get('drug_id'),
                 drug_name=purchase.get('drug_name'),
                 prescription=purchase.get('prescription'),
-            ))
+            )
+
+            if not message is None:
+                messages.append(message)
         
-        return success
+        return messages if len(messages) > 0 else None
     return inner
 
 @multi_purchase
@@ -294,7 +292,7 @@ def customer_buy_drug(
         drug_id: int | None = None,
         drug_name: str | None = None,
         prescription: str | None = None
-    ) -> bool:
+    ) -> str | None:
     """
     Adds drug to customer e-book ".txt" file and removes amount customer bought from "drugs.xlsx" file.
 
@@ -306,11 +304,10 @@ def customer_buy_drug(
         prescription (str | None): optional prescription number for drug
 
     Returns:
-        success (bool): True if drug was bought successfully otherwise False
+        message (str | None): None if operation goes successfully otherwise string with error message
     """
     if not os.path.isfile(os.path.join(DATABASE_DIR_PATH, f'{customer_id}.txt')):
-        print("Customer with that id doesn't exist.")
-        return False
+        return 'Pacjent z tym id nie istnieje.'
 
     df = pd.read_excel(DRUGS_FILE_PATH)
     drug = None
@@ -321,19 +318,16 @@ def customer_buy_drug(
         drug = df['DRUG'].str.upper() == drug_name.upper()
 
     if drug is None or not drug.any():
-        print('Drug not found.')
-        return False
+        return 'Lek z tym id nie istnieje.'
 
     index = df[drug].index[0]
     available_drug_amount = df.at[index, 'NO_PACKAGES_AVAILABLE']
  
     if available_drug_amount < amount:
-        print('Not enough drugs available.')
-        return False
+        return 'Niewystarczająca ilość leku w sklepie.'
 
-    if df.at[index, 'ON_RECEPT'] == 'YES' and not prescription:
-        print('This drug needs prescription.')
-        return False
+    if df.at[index, 'ON_RECEPT'] == 'YES' and not prescription == 'YES':
+        return 'Ten lek wymaga recepty.'
 
     df.at[index, 'NO_PACKAGES_AVAILABLE'] = available_drug_amount - amount
     df.to_excel(DRUGS_FILE_PATH, index=False)
@@ -342,4 +336,4 @@ def customer_buy_drug(
         drug_name = df.at[index, 'DRUG'].upper()
         customer_text_file.write(f'drug: {drug_name}, amount: {amount}, prescription: {prescription}\n')
 
-    return True
+    return None
